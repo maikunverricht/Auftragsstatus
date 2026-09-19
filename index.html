@@ -392,6 +392,21 @@ footer.site .f-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-widt
   text-transform:none;font-family:var(--display);color:var(--text-2)}
 .rowlab input{width:20px;height:20px;flex:none;accent-color:var(--amber);padding:0;height:20px}
 .tag.eigen{color:var(--info);border-color:color-mix(in srgb,var(--info) 40%,transparent)}
+/* Vorschau beim Einfügen */
+.pvbox{border:1px solid var(--line);border-radius:14px;background:var(--glass-2);overflow:hidden;margin-top:14px;
+  max-height:38vh;overflow-y:auto}
+.pv{display:flex;align-items:flex-start;gap:11px;padding:10px 14px;border-top:1px solid var(--line)}
+.pv:first-child{border-top:0}
+.pv input[type="checkbox"]{width:19px;height:19px;flex:none;margin-top:2px;accent-color:var(--amber);cursor:pointer}
+.pv .tx{flex:1;min-width:0;font-size:14.5px;line-height:1.4;word-break:break-word}
+.pv .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.pv.dup{opacity:.5}
+.pvhd{display:flex;align-items:center;gap:9px;margin-top:14px;font-family:var(--mono);font-size:11px;
+  letter-spacing:.11em;text-transform:uppercase;color:var(--text-3)}
+.pvhd .pill{margin-left:auto}
+.legend{margin:10px 0 0;font-size:13px;color:var(--text-3);line-height:1.6}
+.legend code{font-family:var(--mono);font-size:12px;background:var(--glass);border:1px solid var(--line);
+  border-radius:6px;padding:1px 5px}
 </style>
 </head>
 <body>
@@ -581,6 +596,30 @@ footer.site .f-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-widt
   </div>
   <footer><button class="pill" type="button" data-close style="margin-left:auto">Schließen</button></footer>
 </div></dialog>
+
+<!-- To-dos einfügen -->
+<dialog id="dlgPaste"><form class="sheet" method="dialog" id="formPaste">
+  <header><h3>To-dos einfügen</h3><button class="pill icon-btn sm" type="button" data-close aria-label="Schließen">✕</button></header>
+  <div class="body">
+    <div class="form" style="grid-template-columns:1fr">
+      <label>Auftrag<select name="auftrag" id="pasteOrder"></select></label>
+      <label>Text einfügen – eine Zeile, ein To-do
+        <textarea name="text" id="pasteText" rows="7" placeholder="- Schnittstelle abstimmen bis 30.09. !&#10;- Testfälle ergänzen 15.10.2026&#10;[x] Kickoff-Protokoll&#10;Rückfrage Lieferant niedrig"></textarea></label>
+    </div>
+    <p class="legend">Erkannt werden: Aufzählungszeichen und Nummern am Zeilenanfang, <code>[x]</code> als erledigt,
+      Datum als <code>30.09.</code>, <code>15.10.2026</code>, <code>2026-10-15</code>, <code>5. Okt</code>,
+      <code>heute</code>, <code>morgen</code> – auch hinter <code>bis</code> oder <code>fällig</code>.
+      Priorität über <code>!</code> bzw. <code>!!</code>, <code>(hoch)</code>, <code>(niedrig)</code> oder die Wörter
+      <code>dringend</code>, <code>wichtig</code>, <code>optional</code>.</p>
+    <div class="pvhd"><span id="pvCount">Vorschau</span><button class="pill sm" type="button" id="pvAll">Alle umschalten</button></div>
+    <div class="pvbox" id="pvBox"><p class="hint">Noch nichts eingefügt.</p></div>
+    <p class="err" id="errPaste" hidden></p>
+  </div>
+  <footer>
+    <button class="pill" type="button" data-close>Abbrechen</button>
+    <button class="pill primary" type="submit" id="pvGo">Übernehmen</button>
+  </footer>
+</form></dialog>
 
 <input type="file" id="zeitInput" accept=".json,application/json,text/json,text/plain" hidden>
 <input type="file" id="ownInput" accept=".json,application/json,text/json,text/plain" hidden>
@@ -1122,6 +1161,7 @@ function renderDetail(scroll){
     + '</div>'
     + '<div class="d-acts">'
     + '<button class="pill sm" type="button" id="addTodo">+ To-do</button>'
+    + '<button class="pill sm" type="button" id="pasteTodo">+ Liste</button>'
     + '<button class="pill sm" type="button" id="addMs">+ Meilenstein</button>'
     + '<button class="pill sm" type="button" id="addNote">+ Eintrag</button>'
     + (o.quelle === 'eigen' ? '<button class="pill icon-btn sm" type="button" id="editOrder" aria-label="Auftrag bearbeiten">✎</button>' : '')
@@ -1194,6 +1234,7 @@ function renderDetail(scroll){
 
   $('#closeD').addEventListener('click', () => { selId = null; renderGrid(); renderDetail(); });
   $('#addTodo').addEventListener('click', () => todoDlg(null));
+  $('#pasteTodo').addEventListener('click', () => pasteDlg(o.id));
   $('#addMs').addEventListener('click', () => msDlg(null));
   $('#addNote').addEventListener('click', noteDlg);
   $('#addNote2').addEventListener('click', noteDlg);
@@ -1379,6 +1420,137 @@ $('#formNote').addEventListener('submit', e => {
   if (!text || !E.datum.value) { e.preventDefault(); $('#errNote').textContent = 'Bitte Datum und Text angeben.'; $('#errNote').hidden = false; return; }
   inh(o.id).ereignisse.push({ id:uid(), ts:new Date(E.datum.value + 'T' + (E.zeit.value || '12:00') + ':00').toISOString(), text:esc(text) });
   save(); neu(); toast('Eintrag ergänzt');
+});
+
+/* ═══════ To-dos von außen: Text einfügen ═══════
+   Jede Zeile wird ein To-do. Beim Übernehmen gehören sie dem Auftragsstatus –
+   was draußen später passiert, kommt hier nicht mehr an. */
+const MONATE = { jan:1, feb:2, 'mär':3, mar:3, apr:4, mai:5, jun:6, jul:7, aug:8, sep:9, okt:10, nov:11, dez:12 };
+function datumAus(t){
+  const h = new Date(); h.setHours(12,0,0,0);
+  const bau = (y, m, d) => { const x = new Date(y, m-1, d, 12); return isNaN(x) ? null : x; };
+  let m;
+  if ((m = t.match(/(?:^|\s)(heute)(?=\s|$|[.,;!])/i)))                       return { d:iso(h), raw:m[1] };
+  if ((m = t.match(/(?:^|\s)(morgen)(?=\s|$|[.,;!])/i)))                      return { d:iso(h.getTime() + 86400000), raw:m[1] };
+  if ((m = t.match(/(?:^|\s)(übermorgen|uebermorgen)(?=\s|$|[.,;!])/i)))      return { d:iso(h.getTime() + 172800000), raw:m[1] };
+  if ((m = t.match(/(\d{4})-(\d{2})-(\d{2})/))) {
+    const x = bau(+m[1], +m[2], +m[3]); if (x) return { d:iso(x), raw:m[0] };
+  }
+  if ((m = t.match(/(\d{1,2})\.\s*(\d{1,2})\.(\s*\d{2,4})?/))) {
+    const jj = m[3] ? parseInt(m[3], 10) : null;
+    const y = jj == null ? h.getFullYear() : (jj < 100 ? 2000 + jj : jj);
+    let x = bau(y, +m[2], +m[1]);
+    if (x && jj == null && x < h) x = bau(y + 1, +m[2], +m[1]);   /* Jahr rollt weiter */
+    if (x) return { d:iso(x), raw:m[0] };
+  }
+  if ((m = t.match(/(\d{1,2})\.?\s*(jan|feb|mär|mar|apr|mai|jun|jul|aug|sep|okt|nov|dez)[a-zä]*\.?(\s*\d{4})?/i))) {
+    const mo = MONATE[m[2].toLowerCase()];
+    const y = m[3] ? parseInt(m[3], 10) : h.getFullYear();
+    let x = bau(y, mo, +m[1]);
+    if (x && !m[3] && x < h) x = bau(y + 1, mo, +m[1]);
+    if (x) return { d:iso(x), raw:m[0] };
+  }
+  return null;
+}
+function parseZeile(z){
+  let t = String(z).replace(/\s+/g, ' ').trim();
+  if (!t) return null;
+  let erledigt = null;
+  const cb = t.match(/^\[\s*([xX])?\s*\]\s*/);
+  if (cb) { if (cb[1]) erledigt = new Date().toISOString(); t = t.slice(cb[0].length); }
+  t = t.replace(/^(?:[-–—*•>·]+|\d+[.)])\s*/, '').trim();
+  if (t.length < 2) return null;
+
+  let prio = 'mittel';
+  if (/!{2,}/.test(t) || /\((hoch|wichtig|dringend)\)/i.test(t) || /\b(dringend|wichtig|asap)\b/i.test(t)) prio = 'hoch';
+  else if (/!(?=\s|$)/.test(t) || /\(hoch\)/i.test(t)) prio = 'hoch';
+  else if (/\((niedrig|optional)\)/i.test(t) || /\b(niedrig|optional|irgendwann|sp[äa]ter)\b/i.test(t)) prio = 'niedrig';
+  t = t.replace(/!{1,3}(?=\s|$)/g, ' ').replace(/\((hoch|mittel|niedrig|wichtig|dringend|optional)\)/ig, ' ')
+       .replace(/\bprio(rit[äa]t)?\s*[:=]\s*(hoch|mittel|niedrig)\b/ig, ' ');
+
+  let faellig = '';
+  const dt = datumAus(t);
+  if (dt) {
+    faellig = dt.d;
+    const i = t.indexOf(dt.raw);
+    const vor = t.slice(0, i).replace(/\b(bis|am|f[äa]llig(\s+am)?|due|termin|deadline)\s*:?\s*$/i, '');
+    t = (vor + t.slice(i + dt.raw.length)).replace(/\s+/g, ' ').trim();
+  }
+  t = t.replace(/\s+(dringend|wichtig|asap|hoch|niedrig|optional|irgendwann|sp[äa]ter)\s*$/i, '')
+       .replace(/\s*[,;:–—-]\s*$/, '').replace(/\s+/g, ' ').trim();
+  if (t.length < 2) return null;
+  return { text:t.slice(0, 200), faellig, prio, erledigt };
+}
+
+let pvItems = [];
+function pasteDlg(auftragId){
+  const E = $('#formPaste').elements;
+  $('#errPaste').hidden = true;
+  $('#pasteOrder').innerHTML = rowsAll.slice()
+    .sort((a,b) => (OPEN.has(b.o.status) - OPEN.has(a.o.status)) || String(a.o.name).localeCompare(String(b.o.name), 'de'))
+    .map(r => '<option value="' + esc(r.o.id) + '">' + esc(r.o.name)
+      + (clientOf(r.o.auftraggeberId) ? ' · ' + esc(clientOf(r.o.auftraggeberId).name) : '')
+      + (OPEN.has(r.o.status) ? '' : ' (' + r.o.status + ')') + '</option>').join('');
+  $('#pasteOrder').value = auftragId || selId || (rowsAll[0] && rowsAll[0].o.id) || '';
+  E.text.value = '';
+  pvItems = []; pvRender();
+  $('#dlgPaste').showModal();
+  setTimeout(() => E.text.focus(), 60);
+}
+function pvParse(){
+  const zeilen = $('#pasteText').value.split(/\r?\n/);
+  const oid = $('#pasteOrder').value;
+  const vorhanden = new Set((store.inhalte[oid]?.todos || []).map(t => String(t.text).toLowerCase().trim()));
+  pvItems = [];
+  const gesehen = new Set();
+  zeilen.forEach(z => {
+    const p = parseZeile(z);
+    if (!p) return;
+    const k = p.text.toLowerCase();
+    const dup = vorhanden.has(k) || gesehen.has(k);
+    gesehen.add(k);
+    pvItems.push(Object.assign(p, { dup, an: !dup }));
+  });
+  pvRender();
+}
+function pvRender(){
+  const an = pvItems.filter(i => i.an).length;
+  $('#pvCount').textContent = pvItems.length ? an + ' von ' + pvItems.length + ' Zeilen werden übernommen' : 'Vorschau';
+  $('#pvGo').disabled = !an;
+  $('#pvBox').innerHTML = pvItems.length
+    ? pvItems.map((i, k) => '<div class="pv' + (i.dup ? ' dup' : '') + '">'
+        + '<input type="checkbox" data-pv="' + k + '"' + (i.an ? ' checked' : '') + ' aria-label="übernehmen">'
+        + '<span class="tx">' + esc(i.text) + '<span class="chips">'
+        + (i.faellig ? '<span class="tag' + (i.faellig < heute() ? ' late' : ' due') + '">fällig ' + fmtDate(i.faellig) + '</span>' : '<span class="tag">ohne Termin</span>')
+        + '<span class="tag' + (i.prio === 'hoch' ? ' late' : '') + '">' + i.prio + '</span>'
+        + (i.erledigt ? '<span class="tag ok">erledigt</span>' : '')
+        + (i.dup ? '<span class="tag">schon vorhanden</span>' : '')
+        + '</span></span></div>').join('')
+    : '<p class="hint">Noch nichts eingefügt.</p>';
+  $$('#pvBox [data-pv]').forEach(b => b.addEventListener('change', () => { pvItems[+b.dataset.pv].an = b.checked; pvRender(); }));
+}
+let pvT;
+$('#pasteText').addEventListener('input', () => { clearTimeout(pvT); pvT = setTimeout(pvParse, 180); });
+$('#pasteText').addEventListener('paste', () => setTimeout(pvParse, 40));
+$('#pasteOrder').addEventListener('change', pvParse);
+$('#pvAll').addEventListener('click', () => {
+  const alle = pvItems.every(i => i.an);
+  pvItems.forEach(i => i.an = !alle);
+  pvRender();
+});
+$('#formPaste').addEventListener('submit', e => {
+  const oid = $('#pasteOrder').value;
+  const nehmen = pvItems.filter(i => i.an);
+  if (!oid || !nehmen.length) {
+    e.preventDefault();
+    $('#errPaste').textContent = !oid ? 'Bitte einen Auftrag wählen.' : 'Es ist keine Zeile ausgewählt.';
+    $('#errPaste').hidden = false; return;
+  }
+  const L = inh(oid).todos;
+  nehmen.forEach(i => L.push({ id:uid(), text:i.text, faellig:i.faellig, prio:i.prio,
+    erledigt:i.erledigt || null, angelegt:new Date().toISOString(), herkunft:'eingefügt' }));
+  selId = oid; foldTodo = true;
+  save(); neu(); toast(nehmen.length + ' To-do' + (nehmen.length > 1 ? 's' : '') + ' übernommen');
 });
 
 /* ═══════ Datenablage ═══════ */
