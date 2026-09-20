@@ -484,7 +484,7 @@ html[data-theme="light"]{
 
 <header class="nav">
   <div class="nav-in">
-    <a class="brand" href="https://maikunverricht.github.io/WerkbankUnverricht/"><span class="mark" aria-hidden="true"><svg viewBox="15 5 90 102"><path d="M26,16 V62 A34,34 0 0 0 94,62 V16" fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/><circle cx="60" cy="64" r="18.5" fill="var(--amber,#F2B33D)"/></svg></span><span class="hide-sm">Werkbank&nbsp;</span><b>Auftragsstatus</b></a>
+    <a class="brand" title="Zum Cockpit" href="https://maikunverricht.github.io/Der-Werkzeugkasten/"><span class="mark" aria-hidden="true"><svg viewBox="15 5 90 102"><path d="M26,16 V62 A34,34 0 0 0 94,62 V16" fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/><circle cx="60" cy="64" r="18.5" fill="var(--amber,#F2B33D)"/></svg></span><span class="hide-sm">Werkbank&nbsp;</span><b>Auftragsstatus</b></a>
     <div class="nav-r">
       <button class="filechip" id="fileChip" type="button" data-s="local" title="Datenablage">
         <span class="fdot" aria-hidden="true"></span><span id="fileName">lokal</span>
@@ -534,12 +534,7 @@ html[data-theme="light"]{
 
 <footer class="site">
   <span>© <span id="yr"></span> Maik Unverricht · Auftragsstatus</span>
-  <span class="f-r">
-    <button class="pill sm" id="exportBtn" type="button">Export</button>
-    <button class="pill sm" id="importBtn" type="button">Import</button>
-    <button class="pill sm" id="srcBtn" type="button">Datenablage</button>
-    <a href="https://maikunverricht.github.io/WerkbankUnverricht/">Werkbank ↗</a>
-  </span>
+  <span class="f-r"><button class="pill sm" id="srcBtn" type="button">Datenablage</button><a href="https://maikunverricht.github.io/WerkbankUnverricht/">Werkbank ↗</a></span>
 </footer>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -1249,13 +1244,23 @@ html[data-theme="light"]{
   function fussknopf() {
     if (!cfg.fuss) return;
     var f = document.querySelector(cfg.fuss);
-    if (!f) return;
+    if (!f) {
+      /* Manche Werkzeuge rufen start() beim Parsen auf – dann steht die
+         Fußzeile noch nicht. Einmal nachfassen, sobald sie da ist. */
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', fussknopf, { once: true });
+      }
+      return;
+    }
     var b = document.createElement('button');
     b.type = 'button';
     b.className = cfg.fussKlasse || 'pill sm';
     b.textContent = lage && lage.status === 'frei' ? 'Lizenz' : 'Freischalten';
     b.addEventListener('click', dialogAuf);
-    f.insertBefore(b, f.firstChild);
+    /* Vor den letzten Eintrag – der ist in allen Werkzeugen der Verweis
+       nach draußen, und davor gehört der Lizenzknopf hin. */
+    var letzter = f.lastElementChild;
+    if (letzter) f.insertBefore(b, letzter); else f.appendChild(b);
   }
 
   /* ── Tor ───────────────────────────────────────────────── */
@@ -2041,10 +2046,9 @@ function renderKPIs(){
   const kritisch = off.filter(r => (r.qH != null && r.qH >= .8) || (r.qE != null && r.qE >= .8)).length;
   $('#kpis').innerHTML =
       '<div class="kpi"><b>' + off.length + '</b><span>offene Aufträge</span></div>'
-    + '<div class="kpi"><b>' + dec.format(hSum) + '</b><span>Stunden gebucht</span></div>'
-    + '<div class="kpi"><b>' + (budSum ? Math.round(verbr / budSum * 100) + ' %' : '–') + '</b><span>Budget verbraucht</span></div>'
     + '<div class="kpi"><b>' + todosOffen + '</b><span>offene To-dos</span></div>'
-    + '<div class="kpi"><b>' + kritisch + '</b><span>ab 80 %</span></div>';
+    + '<div class="kpi"><b>' + (budSum ? Math.round(verbr / budSum * 100) + ' %' : '–') + '</b><span>Budget verbraucht</span></div>'
+    + '<div class="kpi' + (kritisch ? ' warn' : '') + '"><b>' + kritisch + '</b><span>Budget über 80 %</span></div>';
 }
 
 function cardHTML(r){
@@ -2600,9 +2604,9 @@ $('#fsOpen').addEventListener('click', fsOpen);
 $('#fsNew').addEventListener('click', fsNew);
 $('#fsDetach').addEventListener('click', fsDetach);
 $('#fsExport').addEventListener('click', exportieren);
-$('#exportBtn').addEventListener('click', exportieren);
+($('#exportBtn') || { addEventListener(){} }).addEventListener('click', exportieren);
 $('#fsImport').addEventListener('click', () => { $('#dlgSrc').close(); $('#ownInput').click(); });
-$('#importBtn').addEventListener('click', () => $('#ownInput').click());
+($('#importBtn') || { addEventListener(){} }).addEventListener('click', () => $('#ownInput').click());
 $('#ownInput').addEventListener('change', async e => {
   const f = e.target.files && e.target.files[0]; if (!f) return;
   try {
