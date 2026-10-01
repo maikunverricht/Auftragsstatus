@@ -1831,7 +1831,13 @@ function normAb(raw){
   d.auftraege = (Array.isArray(raw.auftraege) ? raw.auftraege : []).filter(x => x && typeof x === 'object');
   return d;
 }
+/* Datei und Lesekopie können auseinanderlaufen: ist das Auftragsbuch
+   ohne Dateifreigabe offen, schreibt es nur die Lesekopie. Es gilt, wer
+   jünger ist – sonst bliebe ein Umbenennen hier unsichtbar. */
+const stempelVon = d => { const t = Date.parse(d && d.updated); return Number.isFinite(t) ? t : 0; };
+function abKopie(){ try { const raw = localStorage.getItem(LS_AB); return raw ? JSON.parse(raw) : null; } catch(e){ return null; } }
 async function ladeAb(){
+  let datei = null;
   if (FSA) {
     try {
       const h = await idb.get('wb-auftragsbuch', 'handle');
@@ -1839,11 +1845,15 @@ async function ladeAb(){
         abHandle = h;
         abWrite = await h.queryPermission({ mode:'readwrite' }) === 'granted';
         const ok = abWrite || await h.queryPermission({ mode:'read' }) === 'granted';
-        if (ok) { ab = normAb(await readHandle(h)); return ab.auftraege.length || ab.auftraggeber.length ? 'file' : 'leer'; }
+        if (ok) datei = await readHandle(h);
       }
     } catch(e){}
   }
-  try { const raw = localStorage.getItem(LS_AB); if (raw) { ab = normAb(JSON.parse(raw)); return 'local'; } } catch(e){}
+  const kopie = abKopie();
+  if (datei && (!kopie || stempelVon(datei) >= stempelVon(kopie))) {
+    ab = normAb(datei); return ab.auftraege.length || ab.auftraggeber.length ? 'file' : 'leer';
+  }
+  if (kopie) { ab = normAb(kopie); return 'local'; }
   ab = normAb(null);
   return 'keins';
 }
@@ -2683,8 +2693,7 @@ addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.retur
 function neu(){ rowsAll = auswerten(); renderClientSel(); renderKPIs(); renderGrid(); renderDetail(); }
 
 async function frisch(){
-  if (abMode === 'file' && abHandle) { try { ab = normAb(await readHandle(abHandle)); } catch(e){} }
-  else { try { const raw = localStorage.getItem(LS_AB); if (raw) { ab = normAb(JSON.parse(raw)); abMode = 'local'; } } catch(e){} }
+  abMode = await ladeAb();
   ladeZeit(); neu();
 }
 addEventListener('storage', e => {
