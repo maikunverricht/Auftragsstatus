@@ -574,10 +574,12 @@ html[data-theme="light"]{
   <header><h3 id="dlgTodoTitle">To-do</h3><button class="pill icon-btn sm" type="button" data-close aria-label="Schließen">✕</button></header>
   <div class="body"><div class="form">
     <label class="wide">Aufgabe<input name="text" required maxlength="200" autocomplete="off"></label>
-    <label>Fällig am<input name="faellig" type="date"></label>
     <label>Priorität<select name="prio">
       <option value="mittel">mittel</option><option value="hoch">hoch</option><option value="niedrig">niedrig</option>
     </select></label>
+    <label>Fällig am<input name="faellig" type="date"></label>
+    <label>Beginn<input name="beginn" type="date"></label>
+    <p class="legend" id="beginnHint" style="grid-column:1/-1;margin:0"></p>
   </div><p class="err" id="errTodo" hidden></p></div>
   <footer>
     <button class="pill danger" type="button" id="delTodo" hidden>Löschen</button>
@@ -613,6 +615,30 @@ html[data-theme="light"]{
   <footer>
     <button class="pill" type="button" data-close>Abbrechen</button>
     <button class="pill primary" type="submit">Eintragen</button>
+  </footer>
+</form></dialog>
+
+<!-- Kommunizieren: Statusmail an den Auftraggeber -->
+<dialog id="dlgMail"><form class="sheet" method="dialog" id="formMail">
+  <header><h3>Kommunizieren</h3><button class="pill icon-btn sm" type="button" data-close aria-label="Schließen">✕</button></header>
+  <div class="body">
+    <h4 class="sechd" style="margin-top:0">Status prüfen</h4>
+    <div class="box" id="mailCheck" style="margin-bottom:14px"></div>
+    <div class="form">
+      <label class="wide">An<input id="mailAn" type="email" autocomplete="off" placeholder="name@firma.de"></label>
+      <label class="wide">Betreff<input id="mailSubj" maxlength="200" autocomplete="off"></label>
+      <label class="rowlab wide"><input type="checkbox" id="mailFm" checked> Fristen und Meilensteine</label>
+      <label class="rowlab wide"><input type="checkbox" id="mailFb" checked> Bitte um Feedback</label>
+      <label class="wide">Text<textarea id="mailText" rows="12" style="font-family:var(--mono);font-size:13.5px"></textarea></label>
+      <label class="rowlab wide"><input type="checkbox" id="mailEv" checked> Im Zeitstrahl vermerken</label>
+    </div>
+    <p class="legend" id="mailHint">Das Mailprogramm öffnet sich mit diesem Entwurf – gesendet wird erst dort. Bei sehr langem Text wird er gekürzt übergeben; der vollständige liegt dann in der Zwischenablage.</p>
+  </div>
+  <footer>
+    <button class="pill" type="button" data-close>Abbrechen</button>
+    <button class="pill" type="button" id="mailNeu" hidden>Text neu erzeugen</button>
+    <button class="pill" type="button" id="mailCopy">Text kopieren</button>
+    <button class="pill primary" type="submit" id="mailGo">Mail öffnen</button>
   </footer>
 </form></dialog>
 
@@ -1362,7 +1388,7 @@ WBTor({
     "wb-auftragsstatus-extra"
   ],
   "schreiben": "#newOrder,#importBtn,#delOrder,#delTodo,#delMs,#fsOpen,#fsNew,#fsImport,#fsDetach,#abOpen,#zeitFile,#zeitRescan,#pvAll,#pvGo,#addTodo,#pasteTodo,#addMs,#addNote,#addNote2,#editOrder,#formOrder,#formTodo,#formMs,#formNote,#formPaste,#srcList [data-k]",
-  "ausgabe": "#exportBtn,#fsExport",
+  "ausgabe": "#exportBtn,#fsExport,#mailBtn,#mailGo,#formMail",
   "demo": {
     "wb-auftragsbuch-data": {
       "app": "werkbank-auftragsbuch",
@@ -1956,7 +1982,7 @@ function buchungen(){
 /* ═══════ Gemeinsame Sicht auf die Aufträge ═══════ */
 function alleAuftraggeber(){
   const m = new Map();
-  ab.auftraggeber.forEach(c => m.set(String(c.id), { id:String(c.id), name:String(c.name || 'Ohne Namen'), stundensatz:num(c.stundensatz), quelle:'ab' }));
+  ab.auftraggeber.forEach(c => m.set(String(c.id), { id:String(c.id), name:String(c.name || 'Ohne Namen'), stundensatz:num(c.stundensatz), email:String(c.email || ''), ansprechpartner:String(c.ansprechpartner || ''), quelle:'ab' }));
   store.auftraggeber.forEach(c => { if (!m.has(c.id)) m.set(c.id, Object.assign({ quelle:'eigen' }, c)); });
   return m;
 }
@@ -2155,6 +2181,31 @@ const CHEV  = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="current
 const FLAG  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 5h12l-2.2 3.5L18 12H6z"/></svg>';
 const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg>';
 
+/* ═══════ Priorität und Beginn ═══════
+   Jede Aufgabe hat eine Priorität. Der Beginn folgt aus ihr, solange er nicht
+   von Hand gesetzt ist: hoch = sofort, mittel = in 3 Tagen, niedrig = in 7 Tagen –
+   nie nach der Fälligkeit. Sortiert wird nach Beginn, dann Priorität, dann Fälligkeit. */
+const PRIO_TAGE = { hoch:0, mittel:3, niedrig:7 };
+const PRIO_RANG = { hoch:0, mittel:1, niedrig:2 };
+const prioN = p => { const v = String(p == null ? '' : p).toLowerCase();
+  return v === '2' ? 'hoch' : v === '0' ? 'niedrig' : v === '1' ? 'mittel' : (v in PRIO_TAGE ? v : 'mittel'); };
+const tagPlus = (d, n) => { const x = new Date(d + 'T12:00:00'); x.setDate(x.getDate() + n);
+  return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
+function beginnAus(prio, basis, faellig){
+  let b = tagPlus(basis, PRIO_TAGE[prioN(prio)]);
+  if (faellig && faellig < b) b = faellig < basis ? basis : faellig;
+  return b;
+}
+const beginnVon = t => (t.beginn && /^\d{4}-\d{2}-\d{2}$/.test(t.beginn)) ? t.beginn
+  : beginnAus(t.prio, String(t.angelegt || heute()).slice(0, 10), t.faellig);
+function todoSort(a, b){
+  if (!!a.erledigt !== !!b.erledigt) return a.erledigt ? 1 : -1;
+  if (a.erledigt) return String(b.erledigt).localeCompare(String(a.erledigt));
+  return beginnVon(a).localeCompare(beginnVon(b))
+    || PRIO_RANG[prioN(a.prio)] - PRIO_RANG[prioN(b.prio)]
+    || String(a.faellig || '9999').localeCompare(String(b.faellig || '9999'));
+}
+
 function renderDetail(scroll){
   const box = $('#detail');
   const r = rowsAll.find(x => x.o.id === selId);
@@ -2162,7 +2213,7 @@ function renderDetail(scroll){
   box.hidden = false;
   const o = r.o, c = clientOf(o.auftraggeberId);
   const s = fmtDate(o.start), e = fmtDate(o.ende);
-  const todos = r.todos.slice().sort((a,b) => (a.erledigt ? 1 : 0) - (b.erledigt ? 1 : 0) || String(a.faellig || '9999').localeCompare(String(b.faellig || '9999')));
+  const todos = r.todos.slice().sort(todoSort);
   const mss = r.mss.slice().sort((a,b) => String(a.datum || '9999').localeCompare(String(b.datum || '9999')));
   const restH = r.budH != null ? r.budH - r.h : null;
   const restE = r.budE != null ? r.budE - r.kosten : null;
@@ -2182,6 +2233,7 @@ function renderDetail(scroll){
     + '<button class="pill sm" type="button" id="pasteTodo">+ Liste</button>'
     + '<button class="pill sm" type="button" id="addMs">+ Meilenstein</button>'
     + '<button class="pill sm" type="button" id="addNote">+ Eintrag</button>'
+    + '<button class="pill sm" type="button" id="mailBtn">Kommunizieren</button>'
     + (o.quelle === 'eigen' ? '<button class="pill icon-btn sm" type="button" id="editOrder" aria-label="Auftrag bearbeiten">✎</button>' : '')
     + '<button class="pill icon-btn sm" type="button" id="closeD" aria-label="Schließen">✕</button>'
     + '</div></div>'
@@ -2213,13 +2265,15 @@ function renderDetail(scroll){
     + (todos.length ? '<ul class="todos">' + todos.map(t => {
         const spaet = !t.erledigt && t.faellig && t.faellig < heute();
         const bald  = !t.erledigt && t.faellig && !spaet && tage(t.faellig, heute()) <= 7;
+        const bg = beginnVon(t), dran = !t.erledigt && bg <= heute();
         return '<li class="todo' + (t.erledigt ? ' done' : '') + '">'
-          + '<span class="prio" data-p="' + esc(t.prio || 'mittel') + '"></span>'
+          + '<span class="prio" data-p="' + esc(prioN(t.prio)) + '"></span>'
           + '<input type="checkbox" data-tog="' + esc(t.id) + '"' + (t.erledigt ? ' checked' : '') + ' aria-label="erledigt">'
           + '<span class="tx">' + esc(t.text) + '<span class="sub">'
           + (t.faellig ? '<span class="' + (spaet ? 'late' : bald ? 'due' : '') + '">fällig ' + fmtDate(t.faellig) + (spaet ? ' · ' + Math.abs(tage(t.faellig, heute())) + ' T über' : '') + '</span>' : '<span>ohne Termin</span>')
-          + '<span>' + esc(t.prio || 'mittel') + '</span>'
-          + (t.erledigt ? '<span>erledigt ' + fmtDate(t.erledigt) + '</span>' : '')
+          + '<span>' + esc(prioN(t.prio)) + '</span>'
+          + (!t.erledigt ? '<span class="' + (dran ? 'due' : '') + '">' + (dran ? 'dran seit ' : 'Beginn ') + fmtDate(bg) + (t.beginnFest ? '' : ' · auto') + '</span>' : '')
+          + (t.erledigt ? '<span>erledigt' + (fmtDate(t.erledigt) ? ' ' + fmtDate(t.erledigt) : '') + '</span>' : '')
           + '</span></span>'
           + '<button class="pill icon-btn sm rm" type="button" data-etodo="' + esc(t.id) + '" aria-label="Bearbeiten">✎</button></li>';
       }).join('') + '</ul>' : '<p class="hint">Noch keine To-dos für diesen Auftrag.</p>')
@@ -2255,6 +2309,7 @@ function renderDetail(scroll){
   $('#pasteTodo').addEventListener('click', () => pasteDlg(o.id));
   $('#addMs').addEventListener('click', () => msDlg(null));
   $('#addNote').addEventListener('click', noteDlg);
+  $('#mailBtn').addEventListener('click', () => mailDlg(r));
   $('#addNote2').addEventListener('click', noteDlg);
   const eo = $('#editOrder'); if (eo) eo.addEventListener('click', () => orderDlg(o.id));
   const fold = (btn, on, set) => $(btn).addEventListener('click', () => {
@@ -2360,7 +2415,21 @@ $('#delOrder').addEventListener('click', () => {
 
 const aktAuftrag = () => rowsAll.find(r => r.o.id === selId)?.o || null;
 
-let editTodo = null;
+let editTodo = null, beginnHand = false;
+function beginnHinweis(){
+  $('#beginnHint').textContent = beginnHand
+    ? 'Beginn von Hand gesetzt. Leeren, um ihn wieder aus der Priorität abzuleiten.'
+    : 'Beginn folgt der Priorität: hoch = heute, mittel = in 3 Tagen, niedrig = in 7 Tagen – nie nach der Fälligkeit.';
+}
+function beginnNachziehen(){
+  const E = $('#formTodo').elements;
+  if (!beginnHand) E.beginn.value = beginnAus(E.prio.value, heute(), E.faellig.value);
+}
+$('#formTodo').elements.prio.addEventListener('change', beginnNachziehen);
+$('#formTodo').elements.faellig.addEventListener('change', beginnNachziehen);
+$('#formTodo').elements.beginn.addEventListener('input', e => {
+  beginnHand = !!e.target.value; if (!beginnHand) beginnNachziehen(); beginnHinweis();
+});
 function todoDlg(id){
   const o = aktAuftrag(); if (!o) return;
   editTodo = id;
@@ -2370,7 +2439,10 @@ function todoDlg(id){
   $('#errTodo').hidden = true; $('#formTodo').reset();
   E.text.value = t ? t.text : '';
   E.faellig.value = t ? (t.faellig || '') : '';
-  E.prio.value = t ? (t.prio || 'mittel') : 'mittel';
+  E.prio.value = t ? prioN(t.prio) : 'mittel';
+  beginnHand = !!(t && t.beginnFest);
+  E.beginn.value = t ? beginnVon(t) : beginnAus(E.prio.value, heute(), E.faellig.value);
+  beginnHinweis();
   $('#delTodo').hidden = !t;
   $('#dlgTodo').showModal();
   setTimeout(() => E.text.focus(), 60);
@@ -2380,8 +2452,11 @@ $('#formTodo').addEventListener('submit', e => {
   const E = e.target.elements, text = E.text.value.trim();
   if (!text) { e.preventDefault(); $('#errTodo').textContent = 'Bitte eine Aufgabe angeben.'; $('#errTodo').hidden = false; return; }
   const L = inh(o.id).todos;
-  if (editTodo) Object.assign(L.find(x => x.id === editTodo), { text, faellig:E.faellig.value, prio:E.prio.value });
-  else L.push({ id:uid(), text, faellig:E.faellig.value, prio:E.prio.value, erledigt:null, angelegt:new Date().toISOString() });
+  if (E.beginn.value && E.faellig.value && E.beginn.value > E.faellig.value) {
+    e.preventDefault(); $('#errTodo').textContent = 'Der Beginn liegt nach der Fälligkeit.'; $('#errTodo').hidden = false; return; }
+  const beginn = E.beginn.value || beginnAus(E.prio.value, heute(), E.faellig.value), beginnFest = beginnHand;
+  if (editTodo) Object.assign(L.find(x => x.id === editTodo), { text, faellig:E.faellig.value, prio:E.prio.value, beginn, beginnFest });
+  else L.push({ id:uid(), text, faellig:E.faellig.value, prio:E.prio.value, beginn, beginnFest, erledigt:null, angelegt:new Date().toISOString() });
   save(); neu(); toast(editTodo ? 'To-do gespeichert' : 'To-do angelegt');
 });
 $('#delTodo').addEventListener('click', () => {
@@ -2566,9 +2641,99 @@ $('#formPaste').addEventListener('submit', e => {
   }
   const L = inh(oid).todos;
   nehmen.forEach(i => L.push({ id:uid(), text:i.text, faellig:i.faellig, prio:i.prio,
-    erledigt:i.erledigt || null, angelegt:new Date().toISOString(), herkunft:'eingefügt' }));
+    beginn:beginnAus(i.prio, heute(), i.faellig), erledigt:i.erledigt || null, angelegt:new Date().toISOString(), herkunft:'eingefügt' }));
   selId = oid; foldTodo = true;
   save(); neu(); toast(nehmen.length + ' To-do' + (nehmen.length > 1 ? 's' : '') + ' übernommen');
+});
+
+/* ═══════ Kommunizieren ═══════
+   Statusmail an den Auftraggeber: Prozessschritt, erreichte und offene
+   Meilensteine, Fristen, Bitte um Feedback. Gesendet wird im Mailprogramm. */
+const SCHRITT = { geplant:'geplant', aktiv:'aktiv in Bearbeitung', pausiert:'pausiert', abgeschlossen:'abgeschlossen', abgerechnet:'abgeschlossen und abgerechnet' };
+let mailRow = null, mailVon = false;
+const tagVon = v => /^\d{4}-\d{2}-\d{2}/.test(String(v || '')) ? String(v).slice(0, 10) : '';
+function mailDaten(r){
+  const h = heute(), o = r.o, c = clientOf(o.auftraggeberId) || {};
+  const fr = r.offen.filter(t => t.faellig).sort((a,b) => String(a.faellig).localeCompare(String(b.faellig)));
+  const msOff = r.mss.filter(m => !m.erreicht && m.datum).sort((a,b) => String(a.datum).localeCompare(String(b.datum)));
+  const msDone = r.mss.filter(m => m.erreicht).sort((a,b) => String(tagVon(b.erreicht) || b.datum).localeCompare(String(tagVon(a.erreicht) || a.datum))).slice(0, 3);
+  return { h, o, r, an:String(c.email || ''), ansprech:String(c.ansprechpartner || ''), fr, msOff, msDone,
+    spaetFr:fr.filter(t => t.faellig < h), spaetMs:msOff.filter(m => m.datum < h),
+    dran:r.offen.filter(t => beginnVon(t) <= h) };
+}
+function mailCheckHTML(d){
+  const z = [], o = d.o, r = d.r, rot = t => '<span style="color:var(--bad)"><b>' + t + '</b></span>';
+  z.push('<b>Prozessschritt:</b> ' + esc(o.status));
+  z.push(d.spaetFr.length ? rot(d.spaetFr.length + ' Frist' + (d.spaetFr.length > 1 ? 'en' : '') + ' überfällig') : 'keine Frist überfällig');
+  z.push(d.spaetMs.length ? rot(d.spaetMs.length + ' Meilenstein' + (d.spaetMs.length > 1 ? 'e' : '') + ' überfällig') : 'kein Meilenstein überfällig');
+  z.push(r.offen.length + ' offene To-dos, davon ' + d.dran.length + ' dran · ' + d.msOff.length + ' offene Meilensteine');
+  if (r.qH != null || r.qE != null) {
+    const q = Math.max(r.qH ?? 0, r.qE ?? 0), t = 'Budget ' + Math.round(q * 100) + ' % verbraucht';
+    z.push(q >= .8 ? rot(t) : t);
+  }
+  if (o.ende && OPEN.has(o.status) && o.ende < d.h) z.push(rot('Endtermin ' + fmtDate(o.ende) + ' überschritten'));
+  if (!d.an) z.push('<span style="color:var(--warn)">Keine E-Mail-Adresse beim Auftraggeber hinterlegt – bitte oben eintragen.</span>');
+  return z.map(x => '<div>' + x + '</div>').join('');
+}
+function mailText(d, op){
+  const n = [], o = d.o;
+  n.push(d.ansprech ? 'Guten Tag ' + d.ansprech + ',' : 'Guten Tag,');
+  n.push('');
+  n.push('hier ein kurzer Zwischenstand zu „' + o.name + '“' + (o.projektnummer ? ' (' + o.projektnummer + ')' : '') + '.');
+  n.push('');
+  n.push('Stand: ' + (SCHRITT[o.status] || o.status));
+  if (op.fm) {
+    if (d.msDone.length) { n.push(''); n.push('Zuletzt erreicht:'); d.msDone.forEach(m => n.push('• ' + m.titel + ' (' + fmtDate(tagVon(m.erreicht) || m.datum) + ')')); }
+    if (d.msOff.length) { n.push(''); n.push('Meilensteine:'); d.msOff.forEach(m => n.push('• ' + fmtDate(m.datum) + ' – ' + m.titel + (m.datum < d.h ? ' (überfällig)' : ''))); }
+    if (d.fr.length) { n.push(''); n.push('Offene Punkte und Fristen:'); d.fr.forEach(t => n.push('• ' + fmtDate(t.faellig) + ' – ' + t.text + (t.faellig < d.h ? ' (überfällig)' : ''))); }
+  }
+  if (op.fb) {
+    n.push(''); n.push('Passt der Stand aus Ihrer Sicht? Gibt es Änderungswünsche oder offene Punkte auf Ihrer Seite? '
+      + 'Über eine kurze Rückmeldung bis ' + fmtDate(tagPlus(d.h, 7)) + ' würde ich mich freuen.');
+  }
+  n.push(''); n.push('Viele Grüße'); n.push('Maik Unverricht');
+  return n.join('\n');
+}
+function mailNeuErzeugen(){
+  if (!mailRow) return;
+  $('#mailText').value = mailText(mailDaten(mailRow), { fm:$('#mailFm').checked, fb:$('#mailFb').checked });
+  mailVon = false; $('#mailNeu').hidden = true;
+}
+function mailDlg(r){
+  mailRow = r;
+  const d = mailDaten(r);
+  $('#mailCheck').innerHTML = mailCheckHTML(d);
+  $('#mailAn').value = d.an;
+  $('#mailSubj').value = 'Zwischenstand: ' + r.o.name + (r.o.projektnummer ? ' (' + r.o.projektnummer + ')' : '');
+  $('#mailFm').checked = true; $('#mailFb').checked = true; $('#mailEv').checked = true;
+  mailNeuErzeugen();
+  $('#dlgMail').showModal();
+}
+['mailFm','mailFb'].forEach(i => $('#' + i).addEventListener('change', () => { if (mailVon) $('#mailNeu').hidden = false; else mailNeuErzeugen(); }));
+$('#mailText').addEventListener('input', () => { mailVon = true; $('#mailNeu').hidden = false; });
+$('#mailNeu').addEventListener('click', mailNeuErzeugen);
+async function kopieren(t){ try { await navigator.clipboard.writeText(t); return true; } catch(e){ return false; } }
+$('#mailCopy').addEventListener('click', async () => {
+  toast(await kopieren($('#mailText').value) ? 'Text kopiert' : 'Kopieren nicht möglich – Text bitte markieren und kopieren.');
+});
+$('#formMail').addEventListener('submit', async () => {
+  const an = $('#mailAn').value.trim(), betr = $('#mailSubj').value.trim(), text = $('#mailText').value;
+  const enc = x => encodeURIComponent(x).replace(/%0A/g, '%0D%0A');
+  const bau = b => 'mailto:' + encodeURIComponent(an).replace(/%40/g, '@') + '?subject=' + enc(betr) + '&body=' + enc(b);
+  let body = text, url = bau(body), gekuerzt = false;
+  while (url.length > 1900 && body.length > 200) {
+    body = body.slice(0, Math.floor(body.length * .9)); gekuerzt = true;
+    url = bau(body.replace(/\n[^\n]*$/, '') + '\n\n[… gekürzt – vollständiger Text in der Zwischenablage]');
+  }
+  if (gekuerzt) await kopieren(text);
+  const a = document.createElement('a'); a.href = url; a.style.display = 'none';
+  document.body.appendChild(a); a.click(); a.remove();
+  if ($('#mailEv').checked && mailRow) {
+    inh(mailRow.o.id).ereignisse.push({ id:uid(), ts:new Date().toISOString(),
+      text:'Statusmail vorbereitet' + (an ? ' an ' + esc(an) : '') + ' – Feedback angefragt' });
+    save(); neu();
+  }
+  toast(gekuerzt ? 'Mail geöffnet – Text war zu lang, vollständig in der Zwischenablage' : 'Mail geöffnet');
 });
 
 /* ═══════ Datenablage ═══════ */
