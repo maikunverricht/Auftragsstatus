@@ -286,6 +286,9 @@ h1 em{font-style:italic;font-weight:600;background:linear-gradient(94deg,var(--e
 .todo .sub .late{color:var(--bad)}
 .todo .sub .due{color:var(--warn)}
 .todo .rm{flex:none}
+.ts{display:inline-flex;align-items:center;border:1px solid currentColor;border-radius:100px;padding:0 7px;background:transparent;
+  font:inherit;font-size:10px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;line-height:1.6}
+.ts[data-s="offen"]{color:var(--text-3)}.ts[data-s="in Arbeit"]{color:var(--info)}.ts[data-s="wartet"]{color:var(--warn)}.ts[data-s="erledigt"]{color:var(--ok)}
 .prio{width:4px;align-self:stretch;border-radius:100px;background:var(--off);flex:none}
 .prio[data-p="hoch"]{background:var(--bad)}
 .prio[data-p="mittel"]{background:var(--warn)}
@@ -579,6 +582,9 @@ html[data-theme="light"]{
     </select></label>
     <label>Fällig am<input name="faellig" type="date"></label>
     <label>Beginn<input name="beginn" type="date"></label>
+    <label>Status<select name="tstatus">
+      <option value="offen">offen</option><option value="in Arbeit">in Arbeit</option><option value="wartet">wartet (auf Rückmeldung)</option><option value="erledigt">erledigt</option>
+    </select></label>
     <p class="legend" id="beginnHint" style="grid-column:1/-1;margin:0"></p>
   </div><p class="err" id="errTodo" hidden></p></div>
   <footer>
@@ -627,7 +633,8 @@ html[data-theme="light"]{
     <div class="form">
       <label class="wide">An<input id="mailAn" type="email" autocomplete="off" placeholder="name@firma.de"></label>
       <label class="wide">Betreff<input id="mailSubj" maxlength="200" autocomplete="off"></label>
-      <label class="rowlab wide"><input type="checkbox" id="mailFm" checked> Fristen und Meilensteine</label>
+      <label class="rowlab wide"><input type="checkbox" id="mailAg" checked> Aufgaben nach Status</label>
+      <label class="rowlab wide"><input type="checkbox" id="mailFm" checked> Meilensteine</label>
       <label class="rowlab wide"><input type="checkbox" id="mailFb" checked> Bitte um Feedback</label>
       <label class="wide">Text<textarea id="mailText" rows="12" style="font-family:var(--mono);font-size:13.5px"></textarea></label>
       <label class="rowlab wide"><input type="checkbox" id="mailEv" checked> Im Zeitstrahl vermerken</label>
@@ -1414,7 +1421,7 @@ WBTor({
     "wb-auftragsstatus-export",
     "wb-auftragsstatus-extra"
   ],
-  "schreiben": "#newOrder,#importBtn,#delOrder,#delTodo,#delMs,#fsOpen,#fsNew,#fsImport,#fsDetach,#abOpen,#zeitFile,#zeitRescan,#pvAll,#pvGo,#addTodo,#pasteTodo,#remBtn,#remDetBtn,#remGo,#formRem,#addMs,#addNote,#addNote2,#editOrder,#formOrder,#formTodo,#formMs,#formNote,#formPaste,#srcList [data-k]",
+  "schreiben": "#newOrder,#importBtn,#delOrder,#delTodo,#delMs,#fsOpen,#fsNew,#fsImport,#fsDetach,#abOpen,#zeitFile,#zeitRescan,#pvAll,#pvGo,#addTodo,#pasteTodo,#remBtn,#remDetBtn,#remGo,#formRem,[data-tstat],#addMs,#addNote,#addNote2,#editOrder,#formOrder,#formTodo,#formMs,#formNote,#formPaste,#srcList [data-k]",
   "ausgabe": "#exportBtn,#fsExport,#mailBtn,#mailGo,#formMail",
   "demo": {
     "wb-auftragsbuch-data": {
@@ -2212,6 +2219,14 @@ const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
    Jede Aufgabe hat eine Priorität. Der Beginn folgt aus ihr, solange er nicht
    von Hand gesetzt ist: hoch = sofort, mittel = in 3 Tagen, niedrig = in 7 Tagen –
    nie nach der Fälligkeit. Sortiert wird nach Beginn, dann Priorität, dann Fälligkeit. */
+/* Status je Aufgabe. „erledigt“ hängt am Feld `erledigt` (Zeitpunkt) –
+   so lesen Terminbuch und ältere Fassungen weiter richtig. */
+const TSTAT = ['offen','in Arbeit','wartet','erledigt'];
+const tStatus = t => t.erledigt ? 'erledigt' : (['in Arbeit','wartet'].includes(t.status) ? t.status : 'offen');
+function setzeTStatus(t, st){
+  if (st === 'erledigt') { if (!t.erledigt) t.erledigt = new Date().toISOString(); t.status = 'erledigt'; }
+  else { t.erledigt = null; t.status = st; }
+}
 const PRIO_TAGE = { hoch:0, mittel:3, niedrig:7 };
 const PRIO_RANG = { hoch:0, mittel:1, niedrig:2 };
 const prioN = p => { const v = String(p == null ? '' : p).toLowerCase();
@@ -2299,6 +2314,7 @@ function renderDetail(scroll){
           + '<input type="checkbox" data-tog="' + esc(t.id) + '"' + (t.erledigt ? ' checked' : '') + ' aria-label="erledigt">'
           + '<span class="tx">' + esc(t.text) + '<span class="sub">'
           + (t.faellig ? '<span class="' + (spaet ? 'late' : bald ? 'due' : '') + '">fällig ' + fmtDate(t.faellig) + (spaet ? ' · ' + Math.abs(tage(t.faellig, heute())) + ' T über' : '') + '</span>' : '<span>ohne Termin</span>')
+          + '<button type="button" class="ts" data-tstat="' + esc(t.id) + '" data-s="' + tStatus(t) + '" title="Status weiterschalten">' + tStatus(t) + '</button>'
           + '<span>' + esc(prioN(t.prio)) + '</span>'
           + (!t.erledigt ? '<span class="' + (dran ? 'due' : '') + '">' + (dran ? 'dran seit ' : 'Beginn ') + fmtDate(bg) + (t.beginnFest ? '' : ' · auto') + '</span>' : '')
           + (t.erledigt ? '<span>erledigt' + (fmtDate(t.erledigt) ? ' ' + fmtDate(t.erledigt) : '') + '</span>' : '')
@@ -2352,7 +2368,12 @@ function renderDetail(scroll){
   $$('#detail [data-tf]').forEach(b => b.addEventListener('click', () => { tlFilter = b.dataset.tf; renderDetail(); }));
   $$('#detail [data-tog]').forEach(b => b.addEventListener('change', () => {
     const t = inh(o.id).todos.find(x => x.id === b.dataset.tog); if (!t) return;
-    t.erledigt = b.checked ? new Date().toISOString() : null;
+    setzeTStatus(t, b.checked ? 'erledigt' : 'offen');
+    save(); neu();
+  }));
+  $$('#detail [data-tstat]').forEach(b => b.addEventListener('click', () => {
+    const t = inh(o.id).todos.find(x => x.id === b.dataset.tstat); if (!t) return;
+    setzeTStatus(t, TSTAT[(TSTAT.indexOf(tStatus(t)) + 1) % TSTAT.length]);
     save(); neu();
   }));
   $$('#detail [data-etodo]').forEach(b => b.addEventListener('click', () => todoDlg(b.dataset.etodo)));
@@ -2469,6 +2490,7 @@ function todoDlg(id){
   E.text.value = t ? t.text : '';
   E.faellig.value = t ? (t.faellig || '') : '';
   E.prio.value = t ? prioN(t.prio) : 'mittel';
+  E.tstatus.value = t ? tStatus(t) : 'offen';
   beginnHand = !!(t && t.beginnFest);
   E.beginn.value = t ? beginnVon(t) : beginnAus(E.prio.value, heute(), E.faellig.value);
   beginnHinweis();
@@ -2484,8 +2506,10 @@ $('#formTodo').addEventListener('submit', e => {
   if (E.beginn.value && E.faellig.value && E.beginn.value > E.faellig.value) {
     e.preventDefault(); $('#errTodo').textContent = 'Der Beginn liegt nach der Fälligkeit.'; $('#errTodo').hidden = false; return; }
   const beginn = E.beginn.value || beginnAus(E.prio.value, heute(), E.faellig.value), beginnFest = beginnHand;
-  if (editTodo) Object.assign(L.find(x => x.id === editTodo), { text, faellig:E.faellig.value, prio:E.prio.value, beginn, beginnFest });
-  else L.push({ id:uid(), text, faellig:E.faellig.value, prio:E.prio.value, beginn, beginnFest, erledigt:null, angelegt:new Date().toISOString() });
+  let t = editTodo ? L.find(x => x.id === editTodo) : null;
+  if (t) Object.assign(t, { text, faellig:E.faellig.value, prio:E.prio.value, beginn, beginnFest });
+  else { t = { id:uid(), text, faellig:E.faellig.value, prio:E.prio.value, beginn, beginnFest, erledigt:null, angelegt:new Date().toISOString() }; L.push(t); }
+  setzeTStatus(t, E.tstatus.value);
   save(); neu(); toast(editTodo ? 'To-do gespeichert' : 'To-do angelegt');
 });
 $('#delTodo').addEventListener('click', () => {
@@ -2683,19 +2707,25 @@ let mailRow = null, mailVon = false;
 const tagVon = v => /^\d{4}-\d{2}-\d{2}/.test(String(v || '')) ? String(v).slice(0, 10) : '';
 function mailDaten(r){
   const h = heute(), o = r.o, c = clientOf(o.auftraggeberId) || {};
+  const grp = {}; TSTAT.forEach(k => grp[k] = []);
+  r.todos.forEach(t => grp[tStatus(t)].push(t));
+  const bisher = tagPlus(h, -30);
+  grp.erledigt = grp.erledigt.filter(t => !tagVon(t.erledigt) || tagVon(t.erledigt) >= bisher);
+  TSTAT.forEach(k => grp[k].sort(todoSort));
   const fr = r.offen.filter(t => t.faellig).sort((a,b) => String(a.faellig).localeCompare(String(b.faellig)));
   const msOff = r.mss.filter(m => !m.erreicht && m.datum).sort((a,b) => String(a.datum).localeCompare(String(b.datum)));
   const msDone = r.mss.filter(m => m.erreicht).sort((a,b) => String(tagVon(b.erreicht) || b.datum).localeCompare(String(tagVon(a.erreicht) || a.datum))).slice(0, 3);
   return { h, o, r, an:String(c.email || ''), ansprech:String(c.ansprechpartner || ''), fr, msOff, msDone,
     spaetFr:fr.filter(t => t.faellig < h), spaetMs:msOff.filter(m => m.datum < h),
-    dran:r.offen.filter(t => beginnVon(t) <= h) };
+    dran:r.offen.filter(t => beginnVon(t) <= h), grp };
 }
 function mailCheckHTML(d){
   const z = [], o = d.o, r = d.r, rot = t => '<span style="color:var(--bad)"><b>' + t + '</b></span>';
   z.push('<b>Prozessschritt:</b> ' + esc(o.status));
   z.push(d.spaetFr.length ? rot(d.spaetFr.length + ' Frist' + (d.spaetFr.length > 1 ? 'en' : '') + ' überfällig') : 'keine Frist überfällig');
   z.push(d.spaetMs.length ? rot(d.spaetMs.length + ' Meilenstein' + (d.spaetMs.length > 1 ? 'e' : '') + ' überfällig') : 'kein Meilenstein überfällig');
-  z.push(r.offen.length + ' offene To-dos, davon ' + d.dran.length + ' dran · ' + d.msOff.length + ' offene Meilensteine');
+  z.push('Aufgaben: ' + TSTAT.map(k => (r.todos.filter(t => tStatus(t) === k).length) + ' ' + k).join(' · '));
+  z.push(d.dran.length + ' To-dos dran · ' + d.msOff.length + ' offene Meilensteine');
   if (r.qH != null || r.qE != null) {
     const q = Math.max(r.qH ?? 0, r.qE ?? 0), t = 'Budget ' + Math.round(q * 100) + ' % verbraucht';
     z.push(q >= .8 ? rot(t) : t);
@@ -2703,6 +2733,18 @@ function mailCheckHTML(d){
   if (o.ende && OPEN.has(o.status) && o.ende < d.h) z.push(rot('Endtermin ' + fmtDate(o.ende) + ' überschritten'));
   if (!d.an) z.push('<span style="color:var(--warn)">Keine E-Mail-Adresse beim Auftraggeber hinterlegt – bitte oben eintragen.</span>');
   return z.map(x => '<div>' + x + '</div>').join('');
+}
+const GRUPPE = { 'in Arbeit':'In Arbeit', wartet:'Wartet auf Rückmeldung', offen:'Offen', erledigt:'Erledigt (letzte 30 Tage)' };
+function aufgabenListe(n, grp, h, txt, fae, erl){
+  ['in Arbeit','wartet','offen','erledigt'].forEach(k => {
+    const L = grp[k] || []; if (!L.length) return;
+    n.push(''); n.push(GRUPPE[k] + ':');
+    L.forEach(t => {
+      const f = fae(t), e = erl(t);
+      n.push('• ' + txt(t) + (k === 'erledigt' ? (e ? ' (' + fmtDate(e) + ')' : '')
+        : f ? ' – fällig ' + fmtDate(f) + (f < h ? ' (überfällig)' : '') : ''));
+    });
+  });
 }
 function mailText(d, op){
   const n = [], o = d.o;
@@ -2714,8 +2756,8 @@ function mailText(d, op){
   if (op.fm) {
     if (d.msDone.length) { n.push(''); n.push('Zuletzt erreicht:'); d.msDone.forEach(m => n.push('• ' + m.titel + ' (' + fmtDate(tagVon(m.erreicht) || m.datum) + ')')); }
     if (d.msOff.length) { n.push(''); n.push('Meilensteine:'); d.msOff.forEach(m => n.push('• ' + fmtDate(m.datum) + ' – ' + m.titel + (m.datum < d.h ? ' (überfällig)' : ''))); }
-    if (d.fr.length) { n.push(''); n.push('Offene Punkte und Fristen:'); d.fr.forEach(t => n.push('• ' + fmtDate(t.faellig) + ' – ' + t.text + (t.faellig < d.h ? ' (überfällig)' : ''))); }
   }
+  if (op.ag) aufgabenListe(n, d.grp, d.h, t => t.text, t => t.faellig, t => tagVon(t.erledigt));
   if (op.fb) {
     n.push(''); n.push('Passt der Stand aus Ihrer Sicht? Gibt es Änderungswünsche oder offene Punkte auf Ihrer Seite? '
       + 'Über eine kurze Rückmeldung bis ' + fmtDate(tagPlus(d.h, 7)) + ' würde ich mich freuen.');
@@ -2725,7 +2767,7 @@ function mailText(d, op){
 }
 function mailNeuErzeugen(){
   if (!mailRow) return;
-  $('#mailText').value = mailText(mailDaten(mailRow), { fm:$('#mailFm').checked, fb:$('#mailFb').checked });
+  $('#mailText').value = mailText(mailDaten(mailRow), { ag:$('#mailAg').checked, fm:$('#mailFm').checked, fb:$('#mailFb').checked });
   mailVon = false; $('#mailNeu').hidden = true;
 }
 function mailDlg(r){
@@ -2734,11 +2776,11 @@ function mailDlg(r){
   $('#mailCheck').innerHTML = mailCheckHTML(d);
   $('#mailAn').value = d.an;
   $('#mailSubj').value = 'Zwischenstand: ' + r.o.name + (r.o.projektnummer ? ' (' + r.o.projektnummer + ')' : '');
-  $('#mailFm').checked = true; $('#mailFb').checked = true; $('#mailEv').checked = true;
+  $('#mailAg').checked = true; $('#mailFm').checked = true; $('#mailFb').checked = true; $('#mailEv').checked = true;
   mailNeuErzeugen();
   $('#dlgMail').showModal();
 }
-['mailFm','mailFb'].forEach(i => $('#' + i).addEventListener('change', () => { if (mailVon) $('#mailNeu').hidden = false; else mailNeuErzeugen(); }));
+['mailAg','mailFm','mailFb'].forEach(i => $('#' + i).addEventListener('change', () => { if (mailVon) $('#mailNeu').hidden = false; else mailNeuErzeugen(); }));
 $('#mailText').addEventListener('input', () => { mailVon = true; $('#mailNeu').hidden = false; });
 $('#mailNeu').addEventListener('click', mailNeuErzeugen);
 async function kopieren(t){ try { await navigator.clipboard.writeText(t); return true; } catch(e){ return false; } }
