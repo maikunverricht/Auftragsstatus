@@ -569,7 +569,8 @@ html,body{overflow-x:clip}
 .zwei{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:16px;margin-top:16px}
 .zwei .as-karte,.as-karte.tl{padding:8px 18px 14px}
 .as-karte.tl{margin-top:16px}
-.as-karte .fold{border-top:0;padding-left:0;padding-right:0}
+.as-karte .fold{margin-top:6px;border:0;border-radius:0;background:none;padding:12px 0}
+.as-karte .foldbar{border:0;background:none;padding:6px 0 10px}
 .as-karte .fold h3{font-size:18px;font-variation-settings:'wdth' 108}
 .as-karte .body-box{border:0;background:none;padding:0}
 .arbeit .todo .prio{width:4px;border-radius:4px}
@@ -3284,7 +3285,16 @@ $('meta[name="theme-color"]').content = root.getAttribute('data-theme') === 'lig
 $('#yr').textContent = new Date().getFullYear();
 addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 
-function neu(){ rowsAll = auswerten(); renderClientSel(); renderKPIs(); renderGrid(); renderDetail(); }
+/* Seit 21.11.2026: #a=<id> öffnet diesen Auftrag (Sprung aus dem Auftragsbuch). */
+function hashWahl(){
+  const m = String(location.hash || '').match(/[#&]a=([^&]+)/); if (!m) return;
+  const id = decodeURIComponent(m[1]), r = rowsAll.find(x => String(x.o.id) === id); if (!r) return;
+  if (!passt(r)) { filter = 'alle'; query = ''; clientF = ''; const q = $('#q'); if (q) q.value = '';
+    $$('.seg button').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.f === filter))); }
+  selId = r.o.id;
+}
+addEventListener('hashchange', () => { hashWahl(); renderGrid(); renderDetail(true); });
+function neu(){ rowsAll = auswerten(); if (!neu.erst) { neu.erst = true; hashWahl(); } renderClientSel(); renderKPIs(); renderGrid(); renderDetail(); }
 
 async function frisch(){
   abMode = await ladeAb();
