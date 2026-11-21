@@ -480,6 +480,118 @@ html[data-theme="light"]{
   .blob{filter:blur(48px)}
   .bg i{filter:blur(38px)}
 }
+
+/* ═══════ Liste links, Detail rechts (seit 21.11.2026) ═══════ */
+html,body{overflow-x:clip}
+.head{padding:calc(92px + env(safe-area-inset-top)) 0 0}
+.head .kpis{margin-left:0}
+.arbeit{display:grid;grid-template-columns:360px minmax(0,1fr);gap:18px;align-items:start;margin-top:18px}
+.liste{position:sticky;top:84px;max-height:calc(100vh - 100px);overflow:auto;border-radius:26px;padding:14px;background:var(--glass);border:1px solid var(--glass-edge);
+  backdrop-filter:blur(24px) saturate(1.35);-webkit-backdrop-filter:blur(24px) saturate(1.35);box-shadow:var(--shadow);scrollbar-width:thin}
+.liste .tools{margin:0;gap:8px}
+.liste .search{flex:1 1 100%;min-width:0}
+.liste .seg{flex:1 1 100%}.liste .seg button{flex:1}
+.liste .selwrap{flex:1 1 calc(50% - 4px);min-width:0}.liste .selwrap select{width:100%}
+.liste #newOrder{flex:1 1 100%}
+.liste .count{flex-basis:100%;text-align:left;margin:0}
+.liste .grid{display:flex;flex-direction:column;gap:4px;margin-top:10px}
+.liste .ocard{display:flex;flex-direction:row;text-align:left;align-items:center;gap:12px;padding:10px;border-radius:16px;border:1px solid transparent;background:none;box-shadow:none;min-height:0;transform:none;
+  transition:background var(--t-s),border-color var(--t-s),transform var(--t-m) var(--kurve)}
+.liste .ocard::before,.liste .ocard::after{display:none}
+.liste .ocard:hover{background:var(--film);transform:translateX(2px)}
+.liste .ocard[aria-current="true"]{background:color-mix(in srgb,var(--acc) 13%,transparent);border-color:color-mix(in srgb,var(--acc) 45%,transparent)}
+.mring{--p:0;--c:var(--teal);position:relative;width:38px;height:38px;flex:none}
+.mring::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(var(--c) calc(var(--p)*1%),color-mix(in srgb,var(--text-3) 22%,transparent) 0);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px))}
+.mring span{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);font-size:10px;color:var(--text-2)}
+.mring.m-warn{--c:var(--amber)}.mring.m-bad{--c:var(--bad)}
+.lz{flex:1;min-width:0}
+.lz b{display:block;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lz small{display:block;font-size:12px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lz .lt{display:inline-block;margin-top:3px;font-family:var(--mono);font-size:10px;color:var(--text-3)}
+.lz .lt.late{color:var(--bad)}.lz .lt.due{color:var(--amber)}
+
+.arbeit .detail{margin:0;padding:0;border:0;background:none;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;animation:asRein .45s var(--kurve)}
+@keyframes asRein{from{opacity:0;transform:translateY(10px)}}
+.as-karte{position:relative;border-radius:28px;padding:24px;background:var(--glass);border:1px solid var(--glass-edge);overflow:hidden;
+  backdrop-filter:blur(24px) saturate(1.35);-webkit-backdrop-filter:blur(24px) saturate(1.35);box-shadow:var(--shadow)}
+.as-karte.kopf::before{content:"";position:absolute;width:520px;height:520px;right:-180px;top:-260px;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,color-mix(in srgb,var(--acc) 30%,transparent),transparent 65%)}
+.arbeit .d-head{position:relative}
+.arbeit .d-head h2{font-size:clamp(28px,3.4vw,42px);font-weight:800;font-variation-settings:'wdth' 116;letter-spacing:-.03em;line-height:1.04;margin:10px 0 4px}
+.kunde-btn{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px 0 4px;border-radius:999px;border:1px solid var(--line);background:var(--film);
+  font-size:13px;color:var(--text-2);text-decoration:none;transition:border-color var(--t-s),color var(--t-s)}
+.kunde-btn:hover{color:var(--text);border-color:var(--amber)}
+.kunde-btn i{width:22px;height:22px;border-radius:8px;display:grid;place-items:center;font-style:normal;font-size:9px;font-weight:700;color:#fff;
+  background:linear-gradient(140deg,var(--amber),color-mix(in srgb,var(--amber) 55%,#000))}
+.kunde-btn.still{pointer-events:none}
+
+/* Schritte als Leiste */
+.arbeit .steps{position:relative;border:0;background:none;border-radius:0;overflow:visible;margin-top:24px}
+.arbeit .steps::before{content:"";position:absolute;left:10%;right:10%;top:14px;height:3px;border-radius:3px;background:color-mix(in srgb,var(--text-3) 22%,transparent)}
+.arbeit .steps .fort{position:absolute;left:10%;top:14px;height:3px;border-radius:3px;background:linear-gradient(90deg,var(--teal),var(--amber));box-shadow:0 0 14px var(--amber);transition:width .8s var(--kurve)}
+.arbeit .step{background:none;padding:0 4px}
+.arbeit .step + .step{border-left:0}
+.arbeit .step:hover{background:none}
+.arbeit .step:hover .dot{transform:scale(1.1)}
+.arbeit .step .dot{position:relative;width:30px;height:30px;margin:0 auto 9px;border:3px solid color-mix(in srgb,var(--text-3) 45%,transparent);background:var(--void);transition:transform var(--t-m) var(--kurve)}
+.arbeit .step.done .dot::after{content:"✓";position:absolute;inset:0;display:grid;place-items:center;color:var(--on-accent,#12171F);font-size:13px;font-weight:800}
+.arbeit .step.now .dot{box-shadow:0 0 0 6px color-mix(in srgb,var(--amber) 20%,transparent),0 0 22px var(--amber)}
+.arbeit .step.now::after{display:none}
+.arbeit .step.done .dot{border-color:var(--teal);background:var(--teal)}
+.arbeit .step.now .dot{border-color:var(--amber);background:var(--amber)}
+.arbeit .steps{display:flex;flex-wrap:nowrap}.arbeit .step{flex:1;min-width:0}
+
+/* Ringe */
+.ringe{position:relative;display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:22px;align-items:center;margin-top:26px}
+.gring{--p:0;--c:var(--teal);position:relative;width:150px;height:150px}
+.gring.b{--c:var(--geld,#D9A86C)}
+.gring.m-warn{--c:var(--amber)}.gring.m-bad{--c:var(--bad)}
+.gring .rg{position:absolute;inset:0;border-radius:50%;
+  background:conic-gradient(from 0deg,var(--c) 0,color-mix(in srgb,var(--c) 60%,#fff) calc(var(--p)*360deg),color-mix(in srgb,var(--text-3) 18%,transparent) calc(var(--p)*360deg + .5deg));
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 12px),#000 calc(100% - 11px));mask:radial-gradient(farthest-side,transparent calc(100% - 12px),#000 calc(100% - 11px));
+  filter:drop-shadow(0 0 10px color-mix(in srgb,var(--c) 45%,transparent))}
+.gring .in{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 18px}
+.gring small{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3)}
+.gring b{font-size:30px;font-weight:800;font-variation-settings:'wdth' 116;line-height:1.1}
+.gring em{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--text-2);margin-top:2px}
+.rest{display:flex;flex-direction:column;gap:10px;min-width:0}
+.rest div{padding:12px 14px;border-radius:16px;background:var(--film);border:1px solid var(--line)}
+.rest small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3)}
+.rest b{font-size:19px;font-weight:800;font-variation-settings:'wdth' 114}
+.rest b.late{color:var(--bad)}
+.as-hinweis{position:relative;margin-top:16px;padding:12px 16px;border-radius:16px;font-size:14px;color:var(--text-2);
+  background:color-mix(in srgb,var(--amber) 10%,transparent);border:1px solid color-mix(in srgb,var(--amber) 38%,transparent)}
+.as-hinweis.bad{background:color-mix(in srgb,var(--bad) 10%,transparent);border-color:color-mix(in srgb,var(--bad) 40%,transparent)}
+.as-hinweis b{color:var(--text)}
+.arbeit .notew{margin-top:16px}
+
+.zwei{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:16px;margin-top:16px}
+.zwei .as-karte,.as-karte.tl{padding:8px 18px 14px}
+.as-karte.tl{margin-top:16px}
+.as-karte .fold{border-top:0;padding-left:0;padding-right:0}
+.as-karte .fold h3{font-size:18px;font-variation-settings:'wdth' 108}
+.as-karte .body-box{border:0;background:none;padding:0}
+.arbeit .todo .prio{width:4px;border-radius:4px}
+.as-leer{border-radius:28px;padding:60px 24px;text-align:center;color:var(--text-3);background:var(--glass);border:1px dashed var(--line)}
+
+@media (max-width:980px){
+  .arbeit{grid-template-columns:minmax(0,1fr)}
+  .liste{position:static;max-height:none;overflow:visible}
+  .liste .grid{flex-direction:row;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px}
+  .liste .ocard{flex:none;width:250px;scroll-snap-align:start;border-color:var(--line)}
+  .ringe{grid-template-columns:1fr 1fr;gap:12px}.ringe .rest{grid-column:1/-1}
+  .gring{width:130px;height:130px;margin:0 auto}.gring b{font-size:26px}.gring em{font-size:10px}
+  .zwei{grid-template-columns:1fr}
+  .as-karte{padding:18px;border-radius:22px}
+  .arbeit .step em{font-size:9px;letter-spacing:.04em}
+  .head .kpis{display:none}
+  .head{padding-top:calc(70px + env(safe-area-inset-top))}
+}
+@media (prefers-reduced-motion:reduce){.arbeit .detail{animation:none}}
+@media (min-width:981px){.arbeit #closeD{display:none}}
+/* Der leere Hinweis lugte unten in der Mitte hervor. */
+.toast:not(.show){opacity:0;pointer-events:none}
 </style>
 </head>
 <body>
@@ -502,13 +614,11 @@ html[data-theme="light"]{
 
 <main>
   <section class="head">
-    <div>
-      <div class="eyebrow">Zeit · Budget · Fortschritt</div>
-      <h1><span>Der</span> <em>Auftragsstatus.</em></h1>
-    </div>
     <div class="kpis" id="kpis"></div>
   </section>
 
+  <div class="arbeit">
+  <aside class="liste" aria-label="Aufträge">
   <section class="tools" aria-label="Filter">
     <div class="search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
@@ -532,7 +642,9 @@ html[data-theme="light"]{
   </section>
 
   <section class="grid" id="grid"></section>
+  </aside>
   <section class="detail" id="detail" aria-live="polite" hidden></section>
+  </div>
 </main>
 
 <footer class="site">
@@ -2072,6 +2184,10 @@ function auswerten(){
 
 /* ═══════ Balken ═══════ */
 const klasse = q => q == null ? 'm-none' : q > 1 ? 'm-bad' : q >= .8 ? 'm-warn' : 'm-ok';
+function ringHTML(label, ist, soll, fmt, q, art){
+  return '<div class="gring ' + art + ' ' + klasse(q) + '" style="--p:' + (q == null ? 0 : Math.min(1, q)).toFixed(3) + '"><span class="rg"></span><div class="in">'
+    + '<small>' + label + '</small><b>' + (q == null ? '–' : Math.round(q * 100) + '%') + '</b><em>' + fmt(ist) + (soll != null ? ' / ' + fmt(soll) : ' · ohne Budget') + '</em></div></div>';
+}
 function meter(label, ist, soll, fmt, q){
   const pct = q == null ? null : Math.round(q * 100);
   const w = q == null ? 0 : Math.min(100, q * 100);
@@ -2130,31 +2246,25 @@ function renderKPIs(){
 }
 
 function cardHTML(r){
-  const o = r.o, c = clientOf(o.auftraggeberId), tags = [];
-  if (r.offen.length) {
-    const spaet = r.offen.filter(t => t.faellig && t.faellig < heute()).length;
-    tags.push('<span class="tag' + (spaet ? ' late' : '') + '">' + r.offen.length + ' To-do' + (r.offen.length > 1 ? 's' : '') + (spaet ? ' · ' + spaet + ' überfällig' : '') + '</span>');
-  }
-  if (r.naechster) {
-    const d = tage(r.naechster.datum, heute());
-    tags.push('<span class="tag ' + (d < 0 ? 'late' : d <= 14 ? 'due' : '') + '">◆ ' + esc(r.naechster.titel) + ' · ' + (d < 0 ? Math.abs(d) + ' T über' : d === 0 ? 'heute' : 'in ' + d + ' T') + '</span>');
-  }
-  if (o.quelle === 'eigen') tags.push('<span class="tag eigen">eigener Bestand</span>');
-  if (!r.list.length) tags.push('<span class="tag">keine Zeitbuchung</span>');
+  /* Seit 21.11.2026 eine Zeile: Ring mit dem höheren Verbrauch, Name, Auftraggeber · Status, ein Hinweis. */
+  const o = r.o, c = clientOf(o.auftraggeberId);
+  const q = r.qH == null && r.qE == null ? null : Math.max(r.qH || 0, r.qE || 0);
+  let tag = '';
+  const spaet = r.offen.filter(t => t.faellig && t.faellig < heute()).length;
+  if (spaet) tag = '<span class="lt late">' + spaet + ' To-do' + (spaet > 1 ? 's' : '') + ' überfällig</span>';
+  else if (r.naechster) { const d = tage(r.naechster.datum, heute());
+    tag = '<span class="lt ' + (d < 0 ? 'late' : d <= 14 ? 'due' : '') + '">◆ ' + esc(r.naechster.titel) + ' · ' + (d < 0 ? Math.abs(d) + ' T über' : d === 0 ? 'heute' : 'in ' + d + ' T') + '</span>'; }
+  else if (r.offen.length) tag = '<span class="lt">' + r.offen.length + ' To-do' + (r.offen.length > 1 ? 's' : '') + ' offen</span>';
   return '<article class="ocard" data-id="' + esc(o.id) + '" style="--acc:' + ACC[o.status] + '" aria-current="' + (selId === o.id) + '" tabindex="0" role="button">'
-    + '<div class="oc-top"><div style="min-width:0;flex:1">'
-    + '<h3 class="nm">' + esc(o.name) + '</h3>'
-    + '<div class="cl">' + esc(c ? c.name : 'Ohne Auftraggeber') + '</div>'
-    + (o.projektnummer ? '<div class="oc-pn">' + esc(o.projektnummer) + '</div>' : '')
-    + '</div><span class="st" data-s="' + esc(o.status) + '"><i></i>' + esc(o.status) + '</span></div>'
-    + meter('Zeit', r.h, r.budH, fH, r.qH)
-    + meter('Budget', r.kosten, r.budE, fE, r.qE)
-    + '<div class="oc-foot">' + tags.join('')
-    + '<span style="margin-left:auto">' + (r.letzteAkt ? 'zuletzt ' + datK.format(r.letzteAkt) : 'noch nichts') + '</span></div></article>';
+    + '<span class="mring ' + klasse(q) + '" style="--p:' + (q == null ? 0 : Math.min(100, Math.round(q * 100))) + '"><span>' + (q == null ? '–' : Math.round(q * 100)) + '</span></span>'
+    + '<span class="lz"><b>' + esc(o.name) + '</b><small>' + esc(c ? c.name : 'Ohne Auftraggeber') + ' · ' + esc(o.status) + '</small>' + tag + '</span></article>';
 }
+const breit = () => matchMedia('(min-width: 981px)').matches;
 
 function renderGrid(){
   const view = rowsAll.filter(passt).sort(sortiere);
+  /* Am Rechner ist immer ein Auftrag offen – der erste der Liste, wenn keiner gewählt ist. */
+  if (breit() && view.length && !view.some(r => r.o.id === selId)) { selId = view[0].o.id; queueMicrotask(() => renderDetail()); }
   $('#grid').innerHTML = view.length ? view.map(cardHTML).join('')
     : '<p class="hint solo" style="grid-column:1/-1">' + (rowsAll.length
         ? 'Kein Auftrag passt zu Filter und Suche.'
@@ -2162,7 +2272,7 @@ function renderGrid(){
   $('#count').textContent = view.length + ' von ' + rowsAll.length + ' Aufträgen'
     + (rows.length ? ' · ' + rows.length + ' Zeitbuchungen' : ' · ohne Zeitquelle');
   $$('#grid .ocard').forEach(el => {
-    const go = () => { selId = selId === el.dataset.id ? null : el.dataset.id; renderGrid(); renderDetail(true); };
+    const go = () => { selId = selId === el.dataset.id && !breit() ? null : el.dataset.id; renderGrid(); renderDetail(true); };
     el.addEventListener('click', go);
     el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
   });
@@ -2170,18 +2280,21 @@ function renderGrid(){
 
 const stepsHTML = o => {
   const i = STATUS.indexOf(o.status);
-  return '<div class="steps">' + STATUS.map((s, k) =>
+  return '<div class="steps"><span class="fort" style="width:' + (Math.max(0, i) / (STATUS.length - 1) * 80) + '%"></span>' + STATUS.map((s, k) =>
     '<button class="step ' + (k < i ? 'done' : k === i ? 'now' : '') + '" type="button" data-step="' + s + '" title="Auf „' + s + '“ setzen">'
     + '<span class="dot"></span><em>' + s + '</em></button>').join('') + '</div>';
 };
 
+/* Erledigt-/Erreicht-Marken aus Importen sind manchmal nur „true“. Daraus wurde
+   früher der 01.01.1970; ohne echten Zeitpunkt erscheint nichts im Zeitstrahl. */
+const zeitpunkt = v => { if (!v || v === true) return null; const d = new Date(v); return isNaN(d) || d.getFullYear() < 2000 ? null : d; };
 function zeitstrahl(r){
   const o = r.o, ev = [];
   r.list.forEach(b => ev.push({ ts:b.ts, a:'zeit', t:'<b>' + dec.format(b.h) + ' h</b> gebucht' + (b.notiz ? ' – ' + esc(b.notiz) : ''),
     m: b.satz != null ? eur2.format(b.h * b.satz) : (r.satz != null ? eur2.format(b.h * r.satz) : '') }));
-  (o.todos || []).forEach(t => { if (t.erledigt) ev.push({ ts:new Date(t.erledigt), a:'todo', t:'To-do erledigt: <b>' + esc(t.text) + '</b>' }); });
+  (o.todos || []).forEach(t => { if (zeitpunkt(t.erledigt)) ev.push({ ts:zeitpunkt(t.erledigt), a:'todo', t:'To-do erledigt: <b>' + esc(t.text) + '</b>' }); });
   (o.meilensteine || []).forEach(m => {
-    if (m.erreicht) ev.push({ ts:new Date(m.erreicht), a:'ms', t:'Meilenstein erreicht: <b>' + esc(m.titel) + '</b>', m:esc(m.notiz || '') });
+    if (zeitpunkt(m.erreicht)) ev.push({ ts:zeitpunkt(m.erreicht), a:'ms', t:'Meilenstein erreicht: <b>' + esc(m.titel) + '</b>', m:esc(m.notiz || '') });
     else if (m.datum) ev.push({ ts:new Date(m.datum + 'T12:00:00'), a:'ms', t:'Meilenstein geplant: <b>' + esc(m.titel) + '</b>', m:m.datum < heute() ? 'überfällig' : 'offen' });
   });
   if (o.start) ev.push({ ts:new Date(o.start + 'T00:00:00'), a:'eck', t:'Auftragsstart' });
@@ -2260,11 +2373,15 @@ function renderDetail(scroll){
   const restH = r.budH != null ? r.budH - r.h : null;
   const restE = r.budE != null ? r.budE - r.kosten : null;
 
+  const kuerzel = n => { const w = String(n || '?').replace(/[^\p{L}\p{N} ]/gu, ' ').trim().split(/\s+/); return ((w[0] || '?')[0] + (w.length > 1 ? w[1][0] : (w[0][1] || ''))).toUpperCase(); };
+  const kundeAb = c && o.quelle === 'ab';
   box.innerHTML =
-      '<div class="d-head"><div style="min-width:0">'
-    + '<div class="eyebrow">' + esc(c ? c.name : 'Ohne Auftraggeber') + (o.projektnummer ? ' · ' + esc(o.projektnummer) : '') + '</div>'
+      '<section class="as-karte kopf" style="--acc:' + ACC[o.status] + '">'
+    + '<div class="d-head"><div style="min-width:0">'
+    + (c ? '<a class="kunde-btn' + (kundeAb ? '' : ' still') + '"' + (kundeAb ? ' href="https://maikunverricht.github.io/Auftragsbuch/#k=' + encodeURIComponent(c.id) + '" title="Im Auftragsbuch öffnen"' : '') + '><i>' + esc(kuerzel(c.name)) + '</i>' + esc(c.name) + (kundeAb ? ' ↗' : '') + '</a>'
+         : '<span class="kunde-btn still">Ohne Auftraggeber</span>')
     + '<h2>' + esc(o.name) + '</h2>'
-    + '<div class="sub">' + (s && e ? s + ' – ' + e : s ? 'ab ' + s : e ? 'bis ' + e : 'ohne Zeitraum')
+    + '<div class="sub">' + (o.projektnummer ? esc(o.projektnummer) + ' · ' : '') + (s && e ? s + ' – ' + e : s ? 'ab ' + s : e ? 'bis ' + e : 'ohne Zeitraum')
     + (r.satz != null ? ' · ' + eur2.format(r.satz) + ' / h' : '')
     + (o.quelle === 'ab' ? ' · Stammdaten aus dem Auftragsbuch' : ' · eigener Bestand') + '</div>'
     + (o.quelle === 'ab' && o.statusAb !== o.status
@@ -2283,24 +2400,22 @@ function renderDetail(scroll){
 
     + stepsHTML(o)
 
-    + '<dl class="dstats">'
-    + '<div class="dstat"><dt>Zeit verbraucht</dt><dd><span class="big">' + dec.format(r.h) + ' h</span> '
-      + '<span class="of">' + (r.budH != null ? 'von ' + dec.format(r.budH) + ' h' : 'kein Zeitbudget') + '</span>'
-      + meter('Zeit', r.h, r.budH, fH, r.qH) + '</dd></div>'
-    + '<div class="dstat"><dt>Budget verbraucht</dt><dd><span class="big">' + eur.format(r.kosten) + '</span> '
-      + '<span class="of">' + (r.budE != null ? 'von ' + eur.format(r.budE) : 'kein Budget') + '</span>'
-      + meter('Budget', r.kosten, r.budE, fE, r.qE) + '</dd></div>'
-    + '<div class="dstat"><dt>Rest</dt><dd><span class="big">' + (restH != null ? dec.format(restH) + ' h' : restE != null ? eur.format(restE) : '–') + '</span>'
-      + '<div class="of" style="margin-top:6px">' + (restE != null ? eur.format(restE) + ' Budget übrig' : 'kein Budget hinterlegt') + '</div>'
-      + (restH != null && restH < 0 ? '<div class="of" style="color:var(--bad);margin-top:4px">' + dec.format(-restH) + ' h über Plan</div>' : '') + '</dd></div>'
-    + '<div class="dstat"><dt>Buchungen</dt><dd><span class="big">' + r.list.length + '</span>'
-      + '<div class="of" style="margin-top:6px">' + (r.letzteAkt ? 'zuletzt ' + fmtDate(iso(r.letzteAkt)) : 'noch keine') + '</div>'
-      + (o.ende ? '<div class="of" style="margin-top:4px' + (o.ende < heute() && OPEN.has(o.status) ? ';color:var(--bad)' : '') + '">'
-        + (o.ende < heute() ? 'Endtermin ' + Math.abs(tage(o.ende, heute())) + ' T überschritten' : 'noch ' + tage(o.ende, heute()) + ' Tage') + '</div>' : '')
-      + '</dd></div></dl>'
+    + '<div class="ringe">'
+    + ringHTML('Zeit', r.h, r.budH, fH, r.qH, '')
+    + ringHTML('Budget', r.kosten, r.budE, fE, r.qE, 'b')
+    + '<div class="rest">'
+    + '<div><small>Rest</small><b class="' + ((restH != null && restH < 0) || (restE != null && restE < 0) ? 'late' : '') + '">'
+      + [restH != null ? dec.format(restH) + ' h' : '', restE != null ? eur.format(restE) : ''].filter(Boolean).join(' · ') + ([restH, restE].every(v => v == null) ? 'kein Budget' : '') + '</b></div>'
+    + '<div><small>Zuletzt gebucht</small><b>' + (r.letzteAkt ? fmtDate(iso(r.letzteAkt)) : 'noch nichts') + '</b>' + (r.list.length ? ' <span class="of">· ' + r.list.length + ' Buchung' + (r.list.length > 1 ? 'en' : '') + '</span>' : '') + '</div>'
+    + '<div><small>Ende</small><b class="' + (o.ende && o.ende < heute() && OPEN.has(o.status) ? 'late' : '') + '">'
+      + (o.ende ? fmtDate(o.ende) + ' · ' + (o.ende < heute() ? Math.abs(tage(o.ende, heute())) + ' T überschritten' : 'noch ' + tage(o.ende, heute()) + ' Tage') : 'offen') + '</b></div>'
+    + '</div></div>'
+    + (restH != null && restH < 0 ? '<div class="as-hinweis bad"><b>' + dec.format(-restH) + ' h</b> über dem Zeitbudget.</div>'
+       : r.qH != null && r.qH >= .8 && OPEN.has(o.status) ? '<div class="as-hinweis">Noch <b>' + dec.format(restH) + ' h</b> im Zeitbudget.</div>' : '')
 
     + (o.beschreibung ? '<dl class="notew"><dt>Beschreibung</dt><dd>' + esc(o.beschreibung) + '</dd></dl>' : '')
 
+    + '</section><div class="zwei"><section class="as-karte">'
     + '<button class="fold" type="button" id="fTodo" aria-expanded="' + foldTodo + '"><h3>To-dos</h3>'
     + '<span class="tag' + (r.offen.length ? ' due' : ' ok') + '">' + r.offen.length + ' offen</span>'
     + '<span class="tag">' + todos.length + ' gesamt</span>' + CHEV + '</button>'
@@ -2323,6 +2438,7 @@ function renderDetail(scroll){
       }).join('') + '</ul>' : '<p class="hint">Noch keine To-dos für diesen Auftrag.</p>')
     + '</div></div></div>'
 
+    + '</section><section class="as-karte">'
     + '<button class="fold" type="button" id="fMs" aria-expanded="' + foldMs + '"><h3>Meilensteine</h3>'
     + '<span class="tag ok">' + mss.filter(m => m.erreicht).length + ' erreicht</span>'
     + '<span class="tag">' + mss.length + ' gesamt</span>' + CHEV + '</button>'
@@ -2332,13 +2448,14 @@ function renderDetail(scroll){
         return '<li class="ms' + (m.erreicht ? ' done' : '') + '">'
           + '<span class="flag">' + (m.erreicht ? CHECK : FLAG) + '</span>'
           + '<span class="tx"><b>' + esc(m.titel) + '</b><span>'
-          + (m.erreicht ? 'erreicht ' + fmtDate(m.erreicht) : m.datum ? (spaet ? 'überfällig seit ' + fmtDate(m.datum) : 'geplant ' + fmtDate(m.datum)) : 'ohne Datum')
+          + (m.erreicht ? 'erreicht' + (fmtDate(m.erreicht) ? ' ' + fmtDate(m.erreicht) : '') : m.datum ? (spaet ? 'überfällig seit ' + fmtDate(m.datum) : 'geplant ' + fmtDate(m.datum)) : 'ohne Datum')
           + (m.notiz ? ' · ' + esc(m.notiz) : '') + '</span></span>'
           + '<button class="pill sm" type="button" data-msdone="' + esc(m.id) + '">' + (m.erreicht ? 'zurück' : 'erreicht') + '</button>'
           + '<button class="pill icon-btn sm" type="button" data-ems="' + esc(m.id) + '" aria-label="Bearbeiten">✎</button></li>';
       }).join('') + '</ul>' : '<p class="hint">Noch keine Meilensteine für diesen Auftrag.</p>')
     + '</div></div></div>'
 
+    + '</section></div><section class="as-karte tl">'
     + '<button class="fold" type="button" id="fTl" aria-expanded="' + foldTl + '"><h3>Zeitstrahl</h3>'
     + '<span class="tag">' + zeitstrahl(r).length + ' Einträge</span>' + CHEV + '</button>'
     + '<div class="foldw' + (foldTl ? ' open' : '') + '"><div class="inner">'
@@ -2346,7 +2463,7 @@ function renderDetail(scroll){
     + [['alle','alles'],['zeit','Zeit'],['todo','To-dos'],['ms','Meilensteine'],['eck','Eckdaten'],['schwelle','Schwellen'],['notiz','Notizen']]
         .map(([k,l]) => '<button type="button" data-tf="' + k + '" aria-pressed="' + (tlFilter === k) + '">' + l + '</button>').join('')
     + '</div><button class="pill primary sm" type="button" id="addNote2">+ Eintrag</button></div>'
-    + '<div class="body-box">' + tlHTML(r) + '</div></div></div>';
+    + '<div class="body-box">' + tlHTML(r) + '</div></div></div></section>';
 
   $('#closeD').addEventListener('click', () => { selId = null; renderGrid(); renderDetail(); });
   $('#addTodo').addEventListener('click', () => todoDlg(null));
@@ -2387,7 +2504,7 @@ function renderDetail(scroll){
     const i = inh(o.id); i.ereignisse = i.ereignisse.filter(x => x.id !== b.dataset.delev);
     save(); neu();
   }));
-  if (scroll) box.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start' });
+  if (scroll && !breit()) box.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start' });
 }
 
 /* Prozessschritt: gehört in die eigene Datei. Nur auf ausdrücklichen Wunsch
@@ -2694,7 +2811,7 @@ $('#formPaste').addEventListener('submit', e => {
   }
   const L = inh(oid).todos;
   nehmen.forEach(i => L.push({ id:uid(), text:i.text, faellig:i.faellig, prio:i.prio,
-    beginn:beginnAus(i.prio, heute(), i.faellig), erledigt:i.erledigt || null, angelegt:new Date().toISOString(), herkunft:'eingefügt' }));
+    beginn:beginnAus(i.prio, heute(), i.faellig), erledigt:i.erledigt ? (typeof i.erledigt === 'string' ? i.erledigt : new Date().toISOString()) : null, angelegt:new Date().toISOString(), herkunft:'eingefügt' }));
   selId = oid; foldTodo = true;
   save(); neu(); toast(nehmen.length + ' To-do' + (nehmen.length > 1 ? 's' : '') + ' übernommen');
 });
